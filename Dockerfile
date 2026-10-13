@@ -5,6 +5,7 @@ FROM python:3.13-slim-bookworm
 ENV LC_ALL=C.UTF-8 \
     LANG=C.UTF-8 \
     PYTHONUNBUFFERED=1 \
+    PYTHONPATH=/opt/recon-pipeline \
     PIP_DISABLE_PIP_VERSION_CHECK=1
 
 EXPOSE 8082
