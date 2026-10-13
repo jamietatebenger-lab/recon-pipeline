@@ -22,7 +22,7 @@ jobs:
           python -m pip install --upgrade pip
           python -m pip install -r requirements-modern.txt pytest
       - name: Compile Python modules
-        run: python -m compileall -q pipeline scripts/doctor.py
+        run: python -m compileall -q pipeline scripts
       - name: Offline installation preflight
         run: python scripts/doctor.py --offline
       - name: Smoke-test import and interactive shell initialization
@@ -32,8 +32,14 @@ jobs:
           shell = importlib.import_module("pipeline.recon-pipeline").ReconShell()
           print("ReconShell initialised", type(shell).__name__)
           PY
-      - name: Model, parser, recon, web and shell unit suites (no real scans)
-        run: python -m pytest -q tests/test_models tests/test_recon tests/test_web tests/test_shell
+      - name: Model, parser, recon, web, shell and court-evidence unit suites (no real scans)
+        run: >-
+          python -m pytest -q
+          tests/test_models
+          tests/test_recon
+          tests/test_web
+          tests/test_shell
+          tests/test_wa_court_evidence.py
 
 # This replaces a historical workflow that targeted Python 3.7 and used
 # deprecated actions/checkout@v1 and actions/setup-python@v1. The original
