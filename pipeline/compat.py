@@ -15,7 +15,7 @@ _OLD_FG = {
     "magenta": Fg.MAGENTA,
     "cyan": Fg.CYAN,
     "white": Fg.WHITE,
-    "bright_black": Fg.LIGHT_BLACK,
+    "bright_black": Fg.BLACK,
     "bright_red": Fg.LIGHT_RED,
     "bright_green": Fg.LIGHT_GREEN,
     "bright_yellow": Fg.LIGHT_YELLOW,
