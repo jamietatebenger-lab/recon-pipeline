@@ -58,7 +58,8 @@ def diagnose(offline=False, root=REPO_ROOT, dns_lookup=socket.getaddrinfo):
         if installed is None:
             add(f"package:{package}", "warning", f"not installed; historical pin {historical}")
         else:
-            add(f"package:{package}", "ok", f"installed {installed}; historical pin {historical}")
+            status = "ok" if installed == historical else "warning"
+            add(f"package:{package}", status, f"installed {installed}; historical pin {historical}")
 
     if sys.version_info >= (3, 12):
         add("legacy-python-compat", "warning", "original pinned runtime targeted Python 3.7; newer-Python compatibility is unverified; see docs/INSTALL-RECOVERY.md")
