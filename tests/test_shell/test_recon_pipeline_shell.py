@@ -329,6 +329,7 @@ class TestReconShell:
 
         with patch("subprocess.Popen", autospec=True) as mocked_popen:
             mocked_popen.return_value = process_mock
+            mocked_pipe.return_value = process_mock
             self.shell.tools_dir = tooldir
             self.shell.do_tools(f"install {test_input}")
             if test_input != "masscan":
@@ -425,6 +426,8 @@ class TestReconShell:
         process_mock.configure_mock(**attrs)
 
         with patch("subprocess.run", autospec=True) as mocked_popen, patch(
+            "subprocess.Popen", autospec=True
+        ) as mocked_pipe, patch(
             "webbrowser.open", autospec=True
         ) as mocked_web, patch("selectors.DefaultSelector.register", autospec=True) as mocked_selector, patch.object(
             recon_shell.cmd2.Cmd, "select", lambda self, choices: "Resume"
