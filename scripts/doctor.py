@@ -14,7 +14,7 @@ import socket
 import sys
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
-# The original Pipfile pins these versions, which are not verified on 3.13.
+# Original, unsupported pins, kept only for identifying accidental legacy installs.
 LEGACY_PINS = {
     "cmd2": "1.0.1",
     "luigi": "2.8.12",
@@ -22,6 +22,26 @@ LEGACY_PINS = {
     "PyYAML": "5.4.0",
     "python-libnmap": "0.7.0",
 }
+
+
+# Supported ranges for the smoke-tested Python 3.13 dependency profile.
+# Upper bounds are exclusive; all comparisons use numeric release components.
+MODERN_RANGES = {
+    "cmd2": ((2, 6, 2), (3, 0, 0)),
+    "luigi": ((3, 8, 1), (4, 0, 0)),
+    "SQLAlchemy": ((1, 4, 54), (2, 0, 0)),
+    "PyYAML": ((6, 0, 2), (7, 0, 0)),
+    "python-libnmap": ((0, 7, 0), (1, 0, 0)),
+}
+
+
+def release_parts(version):
+    """Extract up to three numeric release components without dependencies."""
+    import re
+    match = re.match(r"^(\\d+)(?:\\.(\\d+))?(?:\\.(\\d+))?", version)
+    if not match:
+        return None
+    return tuple(int(part or "0") for part in match.groups())
 
 
 def version_of(package):
@@ -58,11 +78,18 @@ def diagnose(offline=False, root=REPO_ROOT, dns_lookup=socket.getaddrinfo):
         if installed is None:
             add(f"package:{package}", "warning", f"not installed; historical pin {historical}")
         else:
-            status = "ok" if installed == historical else "warning"
-            add(f"package:{package}", status, f"installed {installed}; historical pin {historical}")
+            parsed = release_parts(installed)
+            minimum, maximum = MODERN_RANGES[package]
+            status = "ok" if parsed is not None and minimum <= parsed < maximum else "warning"
+            detail = f"installed {installed}; supported range >= {'.'.join(map(str, minimum))}, < {'.'.join(map(str, maximum))}"
+            if installed == historical:
+                detail += " (obsolete legacy pin)"
+            add(f"package:{package}", status, detail)
 
-    if sys.version_info >= (3, 12):
-        add("legacy-python-compat", "warning", "original pinned runtime targeted Python 3.7; newer-Python compatibility is unverified; see docs/INSTALL-RECOVERY.md")
+    if sys.version_info[:2] == (3, 13):
+        add("python-profile", "ok", "Python 3.13 modern dependency profile (native scanner compatibility unverified)")
+    else:
+        add("python-profile", "warning", "default dependency profile targets Python 3.13; see docs/INSTALL-MODERN.md")
     if not offline:
         for domain in ("github.com", "pypi.org"):
             try:
