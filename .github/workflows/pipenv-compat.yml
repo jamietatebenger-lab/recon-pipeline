@@ -2,7 +2,8 @@ name: Pipenv install verification
 on:
   push:
     paths:
-      - 'Pipfile.modern'
+      - 'Pipfile'
+      - 'Pipfile.lock'
       - '.github/workflows/pipenv-compat.yml'
   pull_request:
   workflow_dispatch:
@@ -18,9 +19,8 @@ jobs:
           python-version: '3.13'
       - name: Install Pipenv into isolated runner interpreter
         run: python -m pip install pipenv
-      - name: Resolve and install experimental dependency profile
+      - name: Resolve and install default Pipfile
         env:
-          PIPENV_PIPFILE: Pipfile.modern
           PIPENV_VENV_IN_PROJECT: '1'
           PIPENV_IGNORE_VIRTUALENVS: '1'
         run: |
