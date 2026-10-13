@@ -18,7 +18,7 @@ from pathlib import Path
 from typing import Any
 
 
-SCHEMA_VERSION = 1
+SCHEMA_VERSION = 2
 
 
 def sha256_file(path: Path) -> str:
@@ -33,12 +33,22 @@ def _letters(value: str) -> str:
     return re.sub(r"[^A-Z]", "", value.upper())
 
 
+def _name_tokens(value: str) -> list[str]:
+    """Canonicalize whitespace-delimited name parts consistently.
+
+    Punctuation inside a name part is removed rather than treated as a separator,
+    so O'Connor and OCONNOR canonicalize to the same token.
+    """
+
+    return [token for token in (_letters(part) for part in value.split()) if token]
+
+
 def _normalise_full_name(value: str) -> str:
-    return " ".join(re.findall(r"[A-Z]+", value.upper()))
+    return " ".join(_name_tokens(value))
 
 
 def _expected_parts(full_name: str) -> tuple[str, str]:
-    words = re.findall(r"[A-Z]+", full_name.upper())
+    words = _name_tokens(full_name)
     if not words:
         return "", ""
     surname = words[-1]
@@ -51,9 +61,9 @@ def _listed_parts(listed_name: str) -> tuple[str, str]:
     if "," in value:
         surname_raw, given_raw = value.split(",", 1)
         surname = _letters(surname_raw)
-        tokens = re.findall(r"[A-Z][A-Z*.-]*", given_raw)
+        tokens = re.findall(r"[A-Z][A-Z*.'-]*", given_raw)
     else:
-        words = re.findall(r"[A-Z][A-Z*.-]*", value)
+        words = value.split()
         if not words:
             return "", ""
         surname = _letters(words[-1])
@@ -101,6 +111,32 @@ def classify_identity(expected_full_name: str, listed_name: str) -> dict[str, An
     }
 
 
+def _parse_capture_time(value: str | None) -> str | None:
+    """Validate and normalize an optional source-capture timestamp.
+
+    A timezone offset is required so evidence records are unambiguous. "Z" is
+    accepted as UTC. Unknown capture times remain null instead of being guessed.
+    """
+
+    if value is None:
+        return None
+
+    candidate = value.strip()
+    if not candidate:
+        return None
+
+    parsed_value = candidate[:-1] + "+00:00" if candidate.endswith(("Z", "z")) else candidate
+    try:
+        parsed = datetime.fromisoformat(parsed_value)
+    except ValueError as exc:
+        raise ValueError("--captured-at must be an ISO 8601 timestamp with a timezone") from exc
+
+    if parsed.tzinfo is None or parsed.utcoffset() is None:
+        raise ValueError("--captured-at must include a timezone offset or Z")
+
+    return parsed.astimezone(timezone.utc).isoformat()
+
+
 @dataclass(frozen=True)
 class CourtObservation:
     date: str | None = None
@@ -119,6 +155,7 @@ def build_record(args: argparse.Namespace) -> dict[str, Any]:
         raise FileNotFoundError(f"source file does not exist: {source_path}")
 
     identity = classify_identity(args.expected_name, args.listed_name)
+    captured_at_utc = _parse_capture_time(getattr(args, "captured_at", None))
     observation = CourtObservation(
         date=args.date,
         court=args.court,
@@ -132,10 +169,11 @@ def build_record(args: argparse.Namespace) -> dict[str, Any]:
 
     return {
         "schema_version": SCHEMA_VERSION,
-        "observed_at_utc": datetime.now(timezone.utc).isoformat(),
+        "generated_at_utc": datetime.now(timezone.utc).isoformat(),
         "source": {
             "file": str(source_path),
             "url": args.source_url,
+            "captured_at_utc": captured_at_utc,
             "sha256": sha256_file(source_path),
             "size_bytes": source_path.stat().st_size,
         },
@@ -148,6 +186,7 @@ def build_record(args: argparse.Namespace) -> dict[str, Any]:
         "handling": {
             "public_source_only": True,
             "missing_fields_are_not_inferred": True,
+            "capture_time_is_explicit_or_null": True,
         },
     }
 
@@ -178,7 +217,7 @@ def diff_records(before: dict[str, Any], after: dict[str, Any]) -> dict[str, Any
         "source",
         before.get("source", {}),
         after.get("source", {}),
-        ["url", "sha256", "size_bytes"],
+        ["url", "captured_at_utc", "sha256", "size_bytes"],
     )
 
     return {
@@ -212,6 +251,10 @@ def build_parser() -> argparse.ArgumentParser:
     record = subparsers.add_parser("record", help="Create one evidence record from a local public-source capture.")
     record.add_argument("--source-file", required=True, help="Local HTML/PDF/text capture obtained lawfully.")
     record.add_argument("--source-url", help="Public source URL recorded as provenance metadata.")
+    record.add_argument(
+        "--captured-at",
+        help="ISO 8601 time the source was actually captured/accessed, including timezone; unknown stays null.",
+    )
     record.add_argument("--expected-name", required=True, help="Reference full name used only for match grading.")
     record.add_argument("--listed-name", required=True, help="Name exactly as displayed by the public listing.")
     record.add_argument("--date")
@@ -237,7 +280,11 @@ def main() -> int:
     args = parser.parse_args()
 
     if args.command == "record":
-        _write_json(build_record(args), args.output)
+        try:
+            payload = build_record(args)
+        except ValueError as exc:
+            parser.error(str(exc))
+        _write_json(payload, args.output)
         return 0
 
     if args.command == "diff":
