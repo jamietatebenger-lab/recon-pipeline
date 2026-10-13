@@ -28,7 +28,7 @@ sys.path.append(str(Path.home() / ".local" / "bin"))
 
 # third party imports
 import cmd2  # noqa: E402
-from cmd2.ansi import style  # noqa: E402
+from .compat import style  # noqa: E402
 
 
 def cluge_package_imports(name, package):
@@ -146,20 +146,20 @@ class ReconShell(cmd2.Cmd):
 
     def _initialize_parsers(self):
         """ Internal helper to associate methods with the subparsers that use them """
-        db_list_parser.set_defaults(func=self.database_list)
-        db_attach_parser.set_defaults(func=self.database_attach)
-        db_detach_parser.set_defaults(func=self.database_detach)
-        db_delete_parser.set_defaults(func=self.database_delete)
-        endpoint_results_parser.set_defaults(func=self.print_endpoint_results)
-        target_results_parser.set_defaults(func=self.print_target_results)
-        nmap_results_parser.set_defaults(func=self.print_nmap_results)
-        technology_results_parser.set_defaults(func=self.print_webanalyze_results)
-        searchsploit_results_parser.set_defaults(func=self.print_searchsploit_results)
-        port_results_parser.set_defaults(func=self.print_port_results)
-        tools_install_parser.set_defaults(func=self.tools_install)
-        tools_reinstall_parser.set_defaults(func=self.tools_reinstall)
-        tools_uninstall_parser.set_defaults(func=self.tools_uninstall)
-        tools_list_parser.set_defaults(func=self.tools_list)
+        db_list_parser.set_defaults(func="database_list")
+        db_attach_parser.set_defaults(func="database_attach")
+        db_detach_parser.set_defaults(func="database_detach")
+        db_delete_parser.set_defaults(func="database_delete")
+        endpoint_results_parser.set_defaults(func="print_endpoint_results")
+        target_results_parser.set_defaults(func="print_target_results")
+        nmap_results_parser.set_defaults(func="print_nmap_results")
+        technology_results_parser.set_defaults(func="print_webanalyze_results")
+        searchsploit_results_parser.set_defaults(func="print_searchsploit_results")
+        port_results_parser.set_defaults(func="print_port_results")
+        tools_install_parser.set_defaults(func="tools_install")
+        tools_reinstall_parser.set_defaults(func="tools_reinstall")
+        tools_uninstall_parser.set_defaults(func="tools_uninstall")
+        tools_list_parser.set_defaults(func="tools_list")
 
     def _preloop_hook(self) -> None:
         """ Hook function that runs prior to the cmdloop function starting; starts the selector loop. """
@@ -506,7 +506,9 @@ class ReconShell(cmd2.Cmd):
         """ Manage tool actions (install/uninstall/reinstall) """
         func = getattr(args, "func", None)
 
-        if func is not None:
+        if isinstance(func, str):
+            getattr(self, func)(args)
+        elif func is not None:
             func(args)
         else:
             self.do_help("tools")
@@ -636,7 +638,9 @@ class ReconShell(cmd2.Cmd):
     def do_database(self, args):
         """ Manage database connections (list/attach/detach/delete) """
         func = getattr(args, "func", None)
-        if func is not None:
+        if isinstance(func, str):
+            getattr(self, func)(args)
+        elif func is not None:
             func(args)
         else:
             self.do_help("database")
@@ -847,7 +851,9 @@ class ReconShell(cmd2.Cmd):
 
         func = getattr(args, "func", None)
 
-        if func is not None:
+        if isinstance(func, str):
+            getattr(self, func)(args)
+        elif func is not None:
             func(args)
         else:
             self.do_help("view")
