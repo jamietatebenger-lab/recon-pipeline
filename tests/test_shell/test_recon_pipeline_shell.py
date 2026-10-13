@@ -329,7 +329,6 @@ class TestReconShell:
 
         with patch("subprocess.Popen", autospec=True) as mocked_popen:
             mocked_popen.return_value = process_mock
-            mocked_pipe.return_value = process_mock
             self.shell.tools_dir = tooldir
             self.shell.do_tools(f"install {test_input}")
             if test_input != "masscan":
@@ -433,6 +432,7 @@ class TestReconShell:
             recon_shell.cmd2.Cmd, "select", lambda self, choices: "Resume"
         ), patch.object(recon_shell, "get_scans") as mocked_scans:
             mocked_popen.return_value = process_mock
+            mocked_pipe.return_value = process_mock
 
             test_input += f" --results-dir {tmp_path / 'mostuff'}"
 
