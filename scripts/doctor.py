@@ -80,7 +80,7 @@ def diagnose(offline=False, root=REPO_ROOT, dns_lookup=socket.getaddrinfo):
         else:
             parsed = release_parts(installed)
             minimum, maximum = MODERN_RANGES[package]
-            status = "ok" if parsed is not None and minimum <= parsed < maximum else "warning"
+            status = "ok" if installed != historical and parsed is not None and minimum <= parsed < maximum else "warning"
             detail = f"installed {installed}; supported range >= {'.'.join(map(str, minimum))}, < {'.'.join(map(str, maximum))}"
             if installed == historical:
                 detail += " (obsolete legacy pin)"
