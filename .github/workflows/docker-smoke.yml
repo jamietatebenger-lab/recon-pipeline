@@ -16,6 +16,6 @@ jobs:
       - uses: actions/checkout@v4
       - name: Build container without executing scanners
         run: docker build --tag recon-pipeline:test .
-      - name: Verify container Python imports and shell initialisation
+      - name: Verify container Python imports, interface and shell initialisation
         run: |
-          docker run --rm --entrypoint python recon-pipeline:test -c "import importlib; s=importlib.import_module('pipeline.recon-pipeline').ReconShell(); print('Container shell initialised')"
+          docker run --rm --entrypoint python recon-pipeline:test -c "import importlib; from pipeline.recon.config import defaults; assert defaults['masscan-iface'] == 'eth0', defaults['masscan-iface']; s=importlib.import_module('pipeline.recon-pipeline').ReconShell(); print('Container shell initialised, default interface:', defaults['masscan-iface'])"
