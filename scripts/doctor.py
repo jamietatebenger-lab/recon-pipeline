@@ -38,7 +38,7 @@ MODERN_RANGES = {
 def release_parts(version):
     """Extract up to three numeric release components without dependencies."""
     import re
-    match = re.match(r"^(\\d+)(?:\\.(\\d+))?(?:\\.(\\d+))?", version)
+    match = re.match(r"^([0-9]+)(?:[.]([0-9]+))?(?:[.]([0-9]+))?", version)
     if not match:
         return None
     return tuple(int(part or "0") for part in match.groups())
