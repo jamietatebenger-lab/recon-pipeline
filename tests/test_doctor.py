@@ -32,6 +32,31 @@ class DoctorTests(unittest.TestCase):
         self.assertEqual(2, len(dns))
         self.assertTrue(all(r["status"] == "error" for r in dns))
 
+    def test_modern_release_parser(self):
+        self.assertEqual((2, 7, 0), doctor.release_parts("2.7.0"))
+        self.assertEqual((6, 0, 3), doctor.release_parts("6.0.3"))
+        self.assertEqual((2, 6, 2), doctor.release_parts("2.6.2.post1"))
+        self.assertIsNone(doctor.release_parts("unknown"))
+
+    def test_modern_packages_are_ok_legacy_pins_warn(self):
+        from unittest.mock import patch
+        modern = {
+            "cmd2": "2.7.0",
+            "luigi": "3.8.1",
+            "SQLAlchemy": "1.4.54",
+            "PyYAML": "6.0.3",
+            "python-libnmap": "0.7.3",
+        }
+        with patch.object(doctor, "version_of", side_effect=modern.get):
+            rows = doctor.diagnose(offline=True, root=ROOT)
+        package_rows = [r for r in rows if r["name"].startswith("package:")]
+        self.assertEqual(5, len(package_rows))
+        self.assertTrue(all(r["status"] == "ok" for r in package_rows), package_rows)
+        with patch.object(doctor, "version_of", side_effect=doctor.LEGACY_PINS.get):
+            legacy_rows = doctor.diagnose(offline=True, root=ROOT)
+        package_rows = [r for r in legacy_rows if r["name"].startswith("package:")]
+        self.assertTrue(all(r["status"] == "warning" for r in package_rows), package_rows)
+
     def test_json_output(self):
         p = subprocess.run([sys.executable, str(SCRIPT), "--offline", "--json"], cwd=ROOT, capture_output=True, text=True)
         self.assertEqual(0, p.returncode, p.stderr + p.stdout)
