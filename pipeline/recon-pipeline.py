@@ -306,19 +306,49 @@ class ReconShell(cmd2.Cmd):
                 style(f"[!] {args.scantype} or one of its dependencies is not installed", fg="bright_red")
             )
 
-        tgt_file_path = None
+        # cmd2 2.x does not always attach __statement__ to parsed arguments.
+        # Reconstruct arguments when called directly (e.g., by unit tests).
+        statement = getattr(args, "__statement__", None)
+        arg_list = list(getattr(statement, "arg_list", []) or [])
+        if not arg_list:
+            arg_list = [args.scantype]
+            for name, option in (
+                ("target", "--target"),
+                ("target_file", "--target-file"),
+                ("exempt_list", "--exempt-list"),
+                ("results_dir", "--results-dir"),
+                ("wordlist", "--wordlist"),
+                ("interface", "--interface"),
+                ("rate", "--rate"),
+                ("top_ports", "--top-ports"),
+                ("ports", "--ports"),
+                ("threads", "--threads"),
+                ("scan_timeout", "--scan-timeout"),
+                ("proxy", "--proxy"),
+                ("extensions", "--extensions"),
+            ):
+                value = getattr(args, name, None)
+                if value is not None and value != "" and value != 0:
+                    arg_list.extend([option, str(value)])
+            for name, option in (
+                ("recursive", "--recursive"),
+                ("sausage", "--sausage"),
+                ("local_scheduler", "--local-scheduler"),
+                ("verbose", "--verbose"),
+            ):
+                if getattr(args, name, False):
+                    arg_list.append(option)
+
         if args.target:
-            tgt_file_fd, tgt_file_path = tempfile.mkstemp()  # temp file to hold target for later parsing
-
-            tgt_file_path = Path(tgt_file_path)
-            tgt_idx = args.__statement__.arg_list.index("--target")
-
+            tgt_file_fd, tmp_name = tempfile.mkstemp()
+            os.close(tgt_file_fd)
+            tgt_file_path = Path(tmp_name)
+            tgt_idx = arg_list.index("--target")
             tgt_file_path.write_text(args.target)
+            arg_list[tgt_idx + 1] = str(tgt_file_path)
+            arg_list[tgt_idx] = "--target-file"
 
-            args.__statement__.arg_list[tgt_idx + 1] = str(tgt_file_path)
-            args.__statement__.arg_list[tgt_idx] = "--target-file"
-
-        command.extend(args.__statement__.arg_list)
+        command.extend(arg_list)
 
         command.extend(["--db-location", str(self.db_mgr.location)])
 
