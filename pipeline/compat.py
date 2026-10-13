@@ -16,13 +16,13 @@ _OLD_FG = {
     "cyan": Fg.CYAN,
     "white": Fg.WHITE,
     "bright_black": Fg.BLACK,
-    "bright_red": Fg.LIGHT_RED,
-    "bright_green": Fg.LIGHT_GREEN,
-    "bright_yellow": Fg.LIGHT_YELLOW,
-    "bright_blue": Fg.LIGHT_BLUE,
-    "bright_magenta": Fg.LIGHT_MAGENTA,
-    "bright_cyan": Fg.LIGHT_CYAN,
-    "bright_white": Fg.LIGHT_WHITE,
+    "bright_red": getattr(Fg, "LIGHT_RED", Fg.RED),
+    "bright_green": getattr(Fg, "LIGHT_GREEN", Fg.GREEN),
+    "bright_yellow": getattr(Fg, "LIGHT_YELLOW", Fg.YELLOW),
+    "bright_blue": getattr(Fg, "LIGHT_BLUE", Fg.BLUE),
+    "bright_magenta": getattr(Fg, "LIGHT_MAGENTA", Fg.MAGENTA),
+    "bright_cyan": getattr(Fg, "LIGHT_CYAN", Fg.CYAN),
+    "bright_white": getattr(Fg, "LIGHT_WHITE", Fg.WHITE),
 }
 
 
