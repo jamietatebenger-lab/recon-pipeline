@@ -25,6 +25,24 @@ Table of Contents
 
 ## Installation
 
+**Updated installation for Python 3.13 (2026)** — use your own isolated environment, not `pip install --user` inside an existing virtual environment:
+
+```bash
+git clone https://github.com/jamietatebenger-lab/recon-pipeline.git
+cd recon-pipeline
+python3 scripts/doctor.py
+python3 -m venv "$HOME/.pipenv-venv"
+"$HOME/.pipenv-venv/bin/python" -m pip install pipenv
+export PIPENV_IGNORE_VIRTUALENVS=1 PIPENV_VENV_IN_PROJECT=1
+"$HOME/.pipenv-venv/bin/pipenv" install
+"$HOME/.pipenv-venv/bin/pipenv" run python pipeline/recon-pipeline.py
+```
+
+The default `Pipfile` now uses modern packages and a fresh lock; original pins are archived in `Pipfile.legacy`. The local model tests and initialisation passed in CI, but third-party scanning tools remain unverified. See [installation details](docs/INSTALL-MODERN.md) and [recovery instructions](docs/INSTALL-RECOVERY.md). Do **not** run `tools install all` as an installation test.
+
+### Historical upstream installation instructions (legacy)
+
+
 > **Python 3.13 (experimental):** Run `python3 scripts/doctor.py --offline` for a dependency-free environment check, then see the [opt-in modern installation profile](docs/INSTALL-MODERN.md). This does not replace the original lockfile and does **not** assert that the full reconnaissance tool suite is compatible.
 
 > **Installation troubleshooting (2026):** If `git clone` fails due to DNS, `pip install --user pipenv` fails inside a virtual environment, or Python 3.13 cannot install the historical pinned dependencies, read the [installation recovery guide](docs/INSTALL-RECOVERY.md). This project's original CI targeted Python 3.7; modern-Python compatibility has **not** been established.
